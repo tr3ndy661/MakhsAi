@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap');
+
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* rendering animation when loading the page */ 
+@keyframes fadeIn {
+  0%{
+    opacity: 0;
+  }
+  100%{
+    opacity: 1;
+  }
+}
