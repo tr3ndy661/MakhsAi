@@ -1,0 +1,2 @@
+# MakhsAi
+ an ai website
