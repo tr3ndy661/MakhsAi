@@ -60,6 +60,12 @@ const Main = () => {
     setUploadedFile(null);
   };
 
+  // handling cards input
+
+  const handleCardClick = (promptText) => {
+			setInput(promptText);
+  }
+
   return (
     <div
       className="main"
@@ -113,19 +119,23 @@ const Main = () => {
               <p>How can I assist you today?</p>
             </div>
             <div className="cards">
-              <div className="card">
+              <div className="card" onClick={() =>handleCardClick("Suggest a new restaurant for me to try."
+									)}>
                 <p>Suggest a new restaurant for me to try.</p>
                 <img src={assets.compass_icon} alt="" />
               </div>
-              <div className="card">
+              <div className="card" onClick={() =>handleCardClick("Brain storm ideas for a dinner party menu."
+									)}>
                 <p>Brain storm ideas for a dinner party menu.</p>
                 <img src={assets.bulb_icon} alt="" />
               </div>
-              <div className="card">
+              <div className="card" onClick={() =>handleCardClick("Reccomend me a movie to watch."
+									)}>
                 <p>Reccomend me a movie to watch.</p>
                 <img src={assets.message_icon} alt="" />
               </div>
-              <div className="card">
+              <div className="card" onClick={() =>handleCardClick("Help me optimize my code to improve readability."
+									)}>
                 <p>Help me optimize my code to improve readability.</p>
                 <img src={assets.code_icon} alt="" />
               </div>

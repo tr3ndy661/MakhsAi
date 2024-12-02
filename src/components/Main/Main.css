@@ -62,7 +62,7 @@
 .main .card{
     height: 200px;
     padding: 15px;
-    background-color: #eceae7;
+    /* background-color: #eceae7; */
     background: rgba(255,255,255,0.1);
     z-index: 10;
     display: flex;
@@ -254,8 +254,8 @@
   @media (max-width: 600px) {
     .main {
         .main-bottom{
-          flex: none;
-          width: 150px;
+          /* flex: none;
+          width: 150px; */
         }
         .main-bottom img{
           width: 20px;

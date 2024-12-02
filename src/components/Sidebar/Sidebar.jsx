@@ -5,17 +5,16 @@ import { Context } from "../../context/Context";
 
 const Sidebar = () => {
   const [extended, setExtended] = useState(false);
-  const { 
-    onSent, 
-    prevPrompts, 
-    setRecentPrompt, 
-    newChat, 
-    chatTitles = [] // Provide a default empty array
+  const {
+    onSent,
+    newChat,
+    getRecentChats,
+    switchToSession
   } = useContext(Context);
 
-  const loadPrompt = async (prompt) => {
-    setRecentPrompt(prompt);
-    await onSent(prompt);
+  const loadChat = async (sessionId) => {
+    // Switch to the selected chat session
+    switchToSession(sessionId);
   };
 
   return (
@@ -34,16 +33,18 @@ const Sidebar = () => {
         {extended ? (
           <div className="recent">
             <p className="recent-title">Recent Chats</p>
-            {chatTitles.length > 0 ? (
-              chatTitles.map((title, index) => (
-                <div 
-                  key={index} 
-                  onClick={() => loadPrompt(title)} 
+            {getRecentChats().length > 0 ? (
+              getRecentChats().map((chat) => (
+                <div
+                  key={chat.id}
+                  onClick={() => loadChat(chat.id)}
                   className="recent-entry"
                 >
                   <img src={assets.message_icon} alt="" />
                   <p className="recent-entry-p">
-                    {title.length > 18 ? title.slice(0, 18) + '...' : title}
+                    {chat.title.length > 18 
+                      ? chat.title.slice(0, 18) + '...' 
+                      : chat.title}
                   </p>
                 </div>
               ))
