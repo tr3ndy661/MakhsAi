@@ -1,10 +1,11 @@
 import React, { createContext, useState, useEffect } from "react";
 import runChat from "../config/gemini";
+// import { extendContextWithSpeech } from './yourSpeechExtensionFile';
 
 export const Context = createContext();
 
 export const ContextProvider = (props) => {
-    // Existing states
+    // states
     const [input, setInput] = useState("");
     const [recentPrompt, setRecentPrompt] = useState("");
     const [prevPrompts, setPrevPrompts] = useState([]);
@@ -14,8 +15,9 @@ export const ContextProvider = (props) => {
     const [resultData, setResultData] = useState("");
     const [uploadedFile, setUploadedFile] = useState(null);
     
-
-    // New states for session management
+    // Add new state for stop generation
+    const [stopGeneration, setStopGeneration] = useState(false);
+    // states for session management
     const [currentSessionId, setCurrentSessionId] = useState(null);
     const [chatSessions, setChatSessions] = useState({});
 
@@ -47,6 +49,7 @@ export const ContextProvider = (props) => {
             setShowResult(!!session.resultData);
         }
     };
+    
 
     // Initialize with a first session on mount
     useEffect(() => {
@@ -75,9 +78,18 @@ export const ContextProvider = (props) => {
 
     const delayPara = (index, nextWord) => {
         setTimeout(function () {
-            setResultData(prev => prev + nextWord);
+            // Check if generation should stop
+            if (!stopGeneration) {
+                setResultData(prev => prev + nextWord);
+            }
         }, 75 * index);
     }
+
+        // Add stop generating function
+        const stopGenerating = () => {
+            setStopGeneration(true);
+            setLoading(false);
+        };
 
     const newChat = () => {
         createNewSession();
@@ -97,7 +109,9 @@ export const ContextProvider = (props) => {
         setResultData("");
         setLoading(true);
         setShowResult(true);
-       
+               // Reset stop generation flag
+        setStopGeneration(false);
+
         let response;
         try {
             // Existing file handling logic
@@ -150,10 +164,11 @@ export const ContextProvider = (props) => {
 
             let newResponse2 = newResponse.split("*").join("<br>");
             let newResponseArray = newResponse2.split(" ");
-            
+
             setResultData("");
            
             for (let i = 0; i < newResponseArray.length; i++) {
+                if (stopGeneration) break; // Stop if generation is cancelled
                 const nextWord = newResponseArray[i];
                 delayPara(i, nextWord + " ");
             }
@@ -307,6 +322,7 @@ export const ContextProvider = (props) => {
             setUploadedFile,
             chatTitles,
             setChatTitles,
+            stopGenerating, // Add the stop generating function
         },
         // New session management methods
         currentSessionId,

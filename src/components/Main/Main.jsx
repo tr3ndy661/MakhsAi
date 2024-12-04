@@ -16,6 +16,7 @@ const Main = () => {
     handleFileUpload,
     uploadedFile,
     setUploadedFile,
+    stopGenerating, // Add stopGenerating from context
   } = useContext(Context);
 
   // Create a ref for the file input
@@ -63,8 +64,8 @@ const Main = () => {
   // handling cards input
 
   const handleCardClick = (promptText) => {
-			setInput(promptText);
-  }
+    setInput(promptText);
+  };
 
   return (
     <div
@@ -119,23 +120,41 @@ const Main = () => {
               <p>How can I assist you today?</p>
             </div>
             <div className="cards">
-              <div className="card" onClick={() =>handleCardClick("Suggest a new restaurant for me to try."
-									)}>
+              <div
+                className="card"
+                onClick={() =>
+                  handleCardClick("Suggest a new restaurant for me to try.")
+                }
+              >
                 <p>Suggest a new restaurant for me to try.</p>
                 <img src={assets.compass_icon} alt="" />
               </div>
-              <div className="card" onClick={() =>handleCardClick("Brain storm ideas for a dinner party menu."
-									)}>
+              <div
+                className="card"
+                onClick={() =>
+                  handleCardClick("Brain storm ideas for a dinner party menu.")
+                }
+              >
                 <p>Brain storm ideas for a dinner party menu.</p>
                 <img src={assets.bulb_icon} alt="" />
               </div>
-              <div className="card" onClick={() =>handleCardClick("Reccomend me a movie to watch."
-									)}>
+              <div
+                className="card"
+                onClick={() =>
+                  handleCardClick("Reccomend me a movie to watch.")
+                }
+              >
                 <p>Reccomend me a movie to watch.</p>
                 <img src={assets.message_icon} alt="" />
               </div>
-              <div className="card" onClick={() =>handleCardClick("Help me optimize my code to improve readability."
-									)}>
+              <div
+                className="card"
+                onClick={() =>
+                  handleCardClick(
+                    "Help me optimize my code to improve readability."
+                  )
+                }
+              >
                 <p>Help me optimize my code to improve readability.</p>
                 <img src={assets.code_icon} alt="" />
               </div>
@@ -226,9 +245,35 @@ const Main = () => {
                   style={{ cursor: "pointer" }}
                 />
               ) : null}
+              {/* Add stop generation button */}
+              {loading && (
+                <button
+                  onClick={stopGenerating}
+                  style={{
+                    background: "#ff4444",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    padding: "6px 12px",
+                    cursor: "pointer",
+                    marginLeft: "10px",
+                    fontSize: "14px",
+                    fontWeight: "500",
+                    transition: "background 0.2s",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                  onMouseOver={(e) => e.target.style.background = "#ff2222"}
+                  onMouseOut={(e) => e.target.style.background = "#ff4444"}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center" }}>
+                    ⏹️ Stop
+                  </span>
+                </button>
+              )}
             </div>
-          </div>
-          <p className="bottom-info">
+          </div>          <p className="bottom-info">
             The AI may display inaccurate info including about people so
             double-check its responses
           </p>

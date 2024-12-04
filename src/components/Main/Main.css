@@ -266,5 +266,11 @@
         .search-box div {
           gap: 5px;
         }
+        .search-box img {
+          width: 30px;
+        }
+        .search-box input {
+          width: 100%;
+        }
     }
   }
