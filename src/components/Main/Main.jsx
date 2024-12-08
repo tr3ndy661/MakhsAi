@@ -1,4 +1,4 @@
-import React, { useContext, useRef, useState } from "react";
+import React, { useContext, useRef, useState, useEffect } from "react";
 import { Context } from "../../context/Context";
 import "./Main.css";
 import { assets } from "../../assets/assets";
@@ -7,16 +7,15 @@ const Main = () => {
   const {
     input,
     setInput,
-    recentPrompt,
-    setRecentPrompt,
-    onSent,
-    showResult,
     loading,
     resultData,
+    showResult,
+    onSent,
     handleFileUpload,
     uploadedFile,
-    setUploadedFile,
-    stopGenerating, // Add stopGenerating from context
+    stopGenerating,
+    recentPrompt,
+    currentSessionId
   } = useContext(Context);
 
   // Create a ref for the file input
@@ -64,12 +63,71 @@ const Main = () => {
   // handling cards input
 
   const handleCardClick = (promptText) => {
-    setInput(promptText);
+    setInput('');  // Clear the input first
+    setTimeout(() => {
+        setInput(promptText);
+        // Add animation class
+        const inputElement = document.querySelector('.search-box input');
+        inputElement.classList.add('animate-text');
+        // Remove animation class after animation ends
+        setTimeout(() => {
+            inputElement.classList.remove('animate-text');
+        }, 300);
+    }, 50);
   };
+
+  const ResultContent = ({ text, isNewResponse = false }) => {
+    const [displayText, setDisplayText] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+
+    const createMarkup = (htmlContent) => {
+        return { __html: htmlContent };
+    };
+
+    useEffect(() => {
+        if (text) {
+            if (isNewResponse) {
+                // Animate only for new AI responses
+                setIsTyping(true);
+                let index = 0;
+                setDisplayText('');
+
+                const typeNextCharacter = () => {
+                    if (index < text.length) {
+                        setDisplayText(current => current + text.charAt(index));
+                        index++;
+                        const randomDelay = Math.floor(Math.random() * 20) + 10;
+                        setTimeout(typeNextCharacter, randomDelay);
+                    } else {
+                        setIsTyping(false);
+                    }
+                };
+
+                typeNextCharacter();
+            } else {
+                // Instantly show text for recent chats
+                setDisplayText(text);
+                setIsTyping(false);
+            }
+        }
+    }, [text, isNewResponse]);
+
+    return (
+        <div className="result-content">
+            <p 
+                className={`typing-text ${isTyping ? 'typing' : ''}`}
+                dangerouslySetInnerHTML={createMarkup(displayText)}
+            />
+        </div>
+    );
+  };
+
+  // Add this state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
     <div
-      className="main"
+      className={`main ${isSidebarOpen ? 'sidebar-open' : ''}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -170,19 +228,20 @@ const Main = () => {
             </div>
             <div className="result-data">
               <img src={assets.gemini_icon} alt="" />
-              <div className="result-content">
-                {loading ? (
-                  <div className="loading">
-                    <div className="typing-indicator">
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                      <div className="dot"></div>
-                    </div>
+              {loading ? (
+                <div className="loading">
+                  <div className="typing-indicator">
+                    <div className="dot"></div>
+                    <div className="dot"></div>
+                    <div className="dot"></div>
                   </div>
-                ) : (
-                  <p dangerouslySetInnerHTML={{ __html: resultData }} />
-                )}
-              </div>
+                </div>
+              ) : (
+                <ResultContent 
+                  text={resultData} 
+                  isNewResponse={loading}
+                />
+              )}
             </div>
           </div>
         )}
@@ -191,14 +250,7 @@ const Main = () => {
           {/* File Preview Section */}
           {uploadedFile && (
             <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "10px",
-                backgroundColor: "#f0f0f0",
-                borderRadius: "5px",
-                margin: "10px 0",
-              }}
+              className="uploaded-file-preview"
             >
               <span style={{ marginRight: "10px" }}>{uploadedFile.name}</span>
               <button
@@ -249,31 +301,14 @@ const Main = () => {
               {loading && (
                 <button
                   onClick={stopGenerating}
-                  style={{
-                    background: "#ff4444",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    padding: "6px 12px",
-                    cursor: "pointer",
-                    marginLeft: "10px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    transition: "background 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                  }}
-                  onMouseOver={(e) => e.target.style.background = "#ff2222"}
-                  onMouseOut={(e) => e.target.style.background = "#ff4444"}
+                  className="stop-button"
                 >
-                  <span style={{ display: "inline-flex", alignItems: "center" }}>
-                    ⏹️ Stop
-                  </span>
+                  <span>Stop</span>
                 </button>
               )}
             </div>
-          </div>          <p className="bottom-info">
+          </div>          
+          <p className="bottom-info">
             The AI may display inaccurate info including about people so
             double-check its responses
           </p>

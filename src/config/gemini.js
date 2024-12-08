@@ -29,42 +29,67 @@ const parseFileContent = (fileContent, fileType) => {
 
   // For text-based files, return as text
   if (fileType === 'text/plain' || 
-      fileType === 'text/csv' || 
+      fileType == 'text/csv' ||
       fileType.includes('word') || 
       fileType === 'application/pdf') {
     return fileContent;
   }
 
+
   return null;
 };
 
-async function runChat(prompt, fileContent = null, fileType = null) {
+// Modified runChat to support chat history and abort controller
+async function runChat(prompt, fileContent = null, fileType = null, chatHistory = [], abortSignal = null) {
   try {
     const chatSession = model.startChat({
       generationConfig,
-      history: [],
+      history: chatHistory.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.content }]
+      })),
     });
 
     let parts = [{ text: prompt }];
 
-    // Add file content if present
     if (fileContent) {
       if (fileType.startsWith('image/') || fileType === 'application/pdf') {
-        // For images and PDFs
         parts.push({
           inlineData: {
             mimeType: fileType,
-            data: fileContent.split(',')[1] // Remove base64 prefix
+            data: fileContent.split(',')[1]
           }
         });
       }
     }
 
-    const result = await chatSession.sendMessage(parts);
-    const response = await result.response.text();
+    // Use streaming for real-time response
+    const result = await chatSession.sendMessageStream(parts);
     
-    return response;
+    let fullResponse = '';
+    
+    // Process the stream
+    for await (const chunk of result.stream) {
+      // Check if generation should be stopped
+      if (abortSignal?.aborted) {
+        throw new Error('Generation aborted');
+      }
+      
+      const chunkText = chunk.text();
+      fullResponse += chunkText;
+      
+      // Emit each chunk for real-time display
+      if (typeof chunk.emit === 'function') {
+        chunk.emit('chunk', chunkText);
+      }
+    }
+    
+    return fullResponse;
   } catch (error) {
+    if (error.message === 'Generation aborted') {
+      console.log('Generation was stopped by user');
+      return '[Generation stopped]';
+    }
     console.error('Error in Gemini API call:', error);
     throw error;
   }
