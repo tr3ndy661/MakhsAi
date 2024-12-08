@@ -16,7 +16,7 @@
     overflow-x: hidden;
     z-index: 100;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    box-shadow: 0 8px 32px 0 rgba(51, 255, 204, 0.3);
 }
 
 .sidebar.extended {

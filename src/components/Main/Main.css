@@ -1,11 +1,11 @@
 ::-moz-selection { /* Code for Firefox */
   color: #2D3142;
-  background: #EAE8FF;
+  background: rgba(51, 255, 204, 0.3);
 }
 
 ::selection {
-  color: #2D3142;
-  background: #EAE8FF;
+  color: #fff;
+  background: rgba(51, 255, 204, 0.3);
 }
 /* styling the main nav bar component "main part of the ui were the user interacts"*/
 .main {
@@ -49,7 +49,7 @@
 }
 
 .main .greet span {
-    background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.5));
+    background: linear-gradient(to right, #fff, rgba(51, 255, 204, 0.3));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -642,4 +642,139 @@
     animation: blink 1s step-end infinite;
     margin-left: 2px;
     font-weight: normal;
+}
+
+/* Voice recognition styles */
+.mic-container {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 0 10px;
+}
+
+.mic-container img {
+    width: 100%;
+    height: 100%;
+    transition: all 0.3s ease;
+    opacity: 0.7;
+}
+
+.mic-container:hover img {
+    opacity: 1;
+}
+
+.mic-container img.listening {
+    filter: brightness(0) saturate(100%) invert(47%) sepia(83%) 
+            saturate(2728%) hue-rotate(130deg) brightness(101%) contrast(101%);
+    opacity: 1;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.listening-animation {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 40px;
+    height: 40px;
+}
+
+.wave {
+    width: 3px;
+    height: 20px;
+    background: rgba(51, 255, 204, 0.8);
+    animation: wave 1s ease-in-out infinite;
+    border-radius: 10px;
+}
+
+.wave:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.wave:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes wave {
+    0%, 100% {
+        height: 8px;
+    }
+    50% {
+        height: 20px;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.listening-input {
+    border-color: rgba(51, 255, 204, 0.5) !important;
+    box-shadow: 0 0 10px rgba(51, 255, 204, 0.2) !important;
+}
+
+.remove-file {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+/* Add these styles for the file preview and remove button */
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+/* .file-preview span {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+} */
+
+/* .remove-file {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+} */
+
+.remove-file:hover {
+    color: rgba(255, 0, 0, 0.8);
+    transform: scale(1.1);
 }

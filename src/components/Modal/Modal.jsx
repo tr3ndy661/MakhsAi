@@ -23,6 +23,8 @@ Bug Fixes:
 
 New Features:
 • Enhanced chat interactivity with message history
+• New functionality added, now you can talk to type instead of typing 
+## this feature may work on some browsers ##
 • Complete redesign of the UI for a more intuitive user experience
 `;
 

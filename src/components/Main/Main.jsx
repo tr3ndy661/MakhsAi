@@ -15,14 +15,83 @@ const Main = () => {
     uploadedFile,
     stopGenerating,
     recentPrompt,
-    currentSessionId
+    currentSessionId,
   } = useContext(Context);
 
   // Create a ref for the file input
   const fileInputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   // State to manage drag over
   const [isDragOver, setIsDragOver] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    // Check for browser support
+    if (
+      !("webkitSpeechRecognition" in window) &&
+      !("SpeechRecognition" in window)
+    ) {
+      console.error("Speech recognition is not supported in this browser");
+      return;
+    }
+
+    // Initialize speech recognition
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognitionRef.current = new SpeechRecognition();
+
+    // Configure recognition
+    recognitionRef.current.continuous = true;
+    recognitionRef.current.interimResults = true;
+    recognitionRef.current.lang = "en-US";
+
+    // Set up event handlers
+    recognitionRef.current.onstart = () => {
+      console.log("Speech recognition started");
+      setIsListening(true);
+    };
+
+    recognitionRef.current.onend = () => {
+      console.log("Speech recognition ended");
+      setIsListening(false);
+    };
+
+    recognitionRef.current.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0])
+        .map((result) => result.transcript)
+        .join("");
+
+      setInput(transcript);
+    };
+
+    recognitionRef.current.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+    };
+
+    // Cleanup
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Toggle listening
+  const toggleListening = () => {
+    try {
+      if (isListening) {
+        recognitionRef.current?.stop();
+      } else {
+        recognitionRef.current?.start();
+      }
+    } catch (error) {
+      console.error("Error toggling speech recognition:", error);
+    }
+  };
 
   // Function to trigger file input click
   const triggerFileInput = () => {
@@ -63,71 +132,91 @@ const Main = () => {
   // handling cards input
 
   const handleCardClick = (promptText) => {
-    setInput('');  // Clear the input first
+    setInput(""); // Clear the input first
     setTimeout(() => {
-        setInput(promptText);
-        // Add animation class
-        const inputElement = document.querySelector('.search-box input');
-        inputElement.classList.add('animate-text');
-        // Remove animation class after animation ends
-        setTimeout(() => {
-            inputElement.classList.remove('animate-text');
-        }, 300);
+      setInput(promptText);
+      // Add animation class
+      const inputElement = document.querySelector(".search-box input");
+      inputElement.classList.add("animate-text");
+      // Remove animation class after animation ends
+      setTimeout(() => {
+        inputElement.classList.remove("animate-text");
+      }, 300);
     }, 50);
   };
 
   const ResultContent = ({ text, isNewResponse = false }) => {
-    const [displayText, setDisplayText] = useState('');
+    const [displayText, setDisplayText] = useState("");
     const [isTyping, setIsTyping] = useState(false);
 
     const createMarkup = (htmlContent) => {
-        return { __html: htmlContent };
+      return { __html: htmlContent };
     };
 
     useEffect(() => {
-        if (text) {
-            if (isNewResponse) {
-                // Animate only for new AI responses
-                setIsTyping(true);
-                let index = 0;
-                setDisplayText('');
+      if (text) {
+        if (isNewResponse) {
+          // Animate only for new AI responses
+          setIsTyping(true);
+          let index = 0;
+          setDisplayText("");
 
-                const typeNextCharacter = () => {
-                    if (index < text.length) {
-                        setDisplayText(current => current + text.charAt(index));
-                        index++;
-                        const randomDelay = Math.floor(Math.random() * 20) + 10;
-                        setTimeout(typeNextCharacter, randomDelay);
-                    } else {
-                        setIsTyping(false);
-                    }
-                };
-
-                typeNextCharacter();
+          const typeNextCharacter = () => {
+            if (index < text.length) {
+              setDisplayText((current) => current + text.charAt(index));
+              index++;
+              const randomDelay = Math.floor(Math.random() * 20) + 10;
+              setTimeout(typeNextCharacter, randomDelay);
             } else {
-                // Instantly show text for recent chats
-                setDisplayText(text);
-                setIsTyping(false);
+              setIsTyping(false);
             }
+          };
+
+          typeNextCharacter();
+        } else {
+          // Instantly show text for recent chats
+          setDisplayText(text);
+          setIsTyping(false);
         }
+      }
     }, [text, isNewResponse]);
 
     return (
-        <div className="result-content">
-            <p 
-                className={`typing-text ${isTyping ? 'typing' : ''}`}
-                dangerouslySetInnerHTML={createMarkup(displayText)}
-            />
-        </div>
+      <div className="result-content">
+        <p
+          className={`typing-text ${isTyping ? "typing" : ""}`}
+          dangerouslySetInnerHTML={createMarkup(displayText)}
+        />
+      </div>
     );
   };
 
   // Add this state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Add this state for managing the file
+  const [localFile, setLocalFile] = useState(null);
+
+  // Handle file removal
+  const handleFileRemove = () => {
+    setLocalFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""; // Reset the file input
+    }
+  };
+
+  // Handle file upload
+  const handleLocalFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setLocalFile(file);
+      handleFileUpload(event); // Call the context's handleFileUpload
+    }
+  };
+
   return (
     <div
-      className={`main ${isSidebarOpen ? 'sidebar-open' : ''}`}
+      className={`main ${isSidebarOpen ? "sidebar-open" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -137,7 +226,7 @@ const Main = () => {
         type="file"
         ref={fileInputRef}
         style={{ display: "none" }}
-        onChange={handleFileUpload}
+        onChange={handleLocalFileUpload}
         accept=".jpg,.jpeg,.png,.gif,.pdf,.txt,.csv,.xlsx"
       />
 
@@ -237,10 +326,7 @@ const Main = () => {
                   </div>
                 </div>
               ) : (
-                <ResultContent 
-                  text={resultData} 
-                  isNewResponse={loading}
-                />
+                <ResultContent text={resultData} isNewResponse={loading} />
               )}
             </div>
           </div>
@@ -248,23 +334,15 @@ const Main = () => {
 
         <div className="main-bottom">
           {/* File Preview Section */}
-          {uploadedFile && (
-            <div
-              className="uploaded-file-preview"
-            >
-              <span style={{ marginRight: "10px" }}>{uploadedFile.name}</span>
+          {localFile && (
+            <div className="file-preview">
+              <span>{localFile.name}</span>
               <button
-                onClick={removeFile}
-                style={{
-                  background: "red",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "3px",
-                  padding: "5px 10px",
-                  cursor: "pointer",
-                }}
+                className="remove-file"
+                onClick={handleFileRemove}
+                aria-label="Remove file"
               >
-                Remove
+                ×
               </button>
             </div>
           )}
@@ -275,39 +353,56 @@ const Main = () => {
               value={input}
               type="text"
               placeholder="Enter your query here..."
+              className={isListening ? "listening-input" : ""}
               onKeyPress={(e) => {
                 if (e.key === "Enter") {
                   onSent(input);
                 }
               }}
             />
-            <div>
+            <div className="input-buttons">
+              {localFile && (
+                <div className="file-preview">
+                  <span>{localFile.name}</span>
+                  <button
+                    className="remove-file"
+                    onClick={handleFileRemove}
+                    aria-label="Remove file"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
               <img
                 src={assets.gallery_icon}
                 alt="Upload"
                 onClick={triggerFileInput}
                 style={{ cursor: "pointer" }}
               />
-              <img src={assets.mic_icon} alt="" />
-              {input ? (
+              <div className="mic-container" onClick={toggleListening}>
+                <img
+                  src={assets.mic_icon}
+                  alt="Voice Input"
+                  className={isListening ? "listening" : ""}
+                />
+                {isListening && (
+                  <div className="listening-animation">
+                    <div className="wave"></div>
+                    <div className="wave"></div>
+                    <div className="wave"></div>
+                  </div>
+                )}
+              </div>
+              {input && (
                 <img
                   onClick={() => input.trim() && onSent(input)}
                   src={assets.send_icon}
-                  alt=""
+                  alt="Send"
                   style={{ cursor: "pointer" }}
                 />
-              ) : null}
-              {/* Add stop generation button */}
-              {loading && (
-                <button
-                  onClick={stopGenerating}
-                  className="stop-button"
-                >
-                  <span>Stop</span>
-                </button>
               )}
             </div>
-          </div>          
+          </div>
           <p className="bottom-info">
             The AI may display inaccurate info including about people so
             double-check its responses
