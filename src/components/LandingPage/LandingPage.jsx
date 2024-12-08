@@ -12,6 +12,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
   const heroRef = useRef(null);
   const isScrolled = useScrollAnimation();
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -103,6 +104,32 @@ const LandingPage = () => {
       section.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  const handleAISelection = async (e) => {
+    const selected = e.target.value;
+    setSelectedAI(selected);
+    
+    try {
+      if (selected === 'chat') {
+        console.log('Before navigation');
+        await navigate('/test');
+        console.log('After navigation');
+      } else if (selected === 'image') {
+        window.location.href = 'https://labs.openai.com/';
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <div className="landing-page">
@@ -271,7 +298,7 @@ const LandingPage = () => {
                     onInit={(typewriter) => {
                       typewriter.pauseFor(400);
                       selectedCard.points.forEach((point, index, array) => {
-                        typewriter.typeString(`• ${point}`).pauseFor(600);
+                        typewriter.typeString(` ${point}`).pauseFor(600);
 
                         if (index !== array.length - 1) {
                           typewriter.typeString("<br>").pauseFor(200);
@@ -398,7 +425,7 @@ const LandingPage = () => {
               <div className="selection-area">
                 <select 
                   className="ai-dropdown"
-                  onChange={(e) => setSelectedAI(e.target.value)}
+                  onChange={handleAISelection}
                   value={selectedAI || ''}
                 >
                   <option value="" disabled>Select AI Type</option>
@@ -431,15 +458,6 @@ const LandingPage = () => {
                     )}
                   </div>
                 )}
-
-                <a 
-                  href={selectedAI === 'chat' ? 'https://makhs-ai.vercel.app/' : 'https://labs.openai.com/'}
-                  className={`try-button ${selectedAI ? 'active' : ''}`}
-                  onClick={(e) => !selectedAI && e.preventDefault()}
-                >
-                  Try Now
-                  <span className="arrow">→</span>
-                </a>
               </div>
             </div>
           </div>
@@ -478,7 +496,7 @@ const LandingPage = () => {
                 <div className="skills-container">
                   <div className="skills-grid">
                     <div className="skill-item">
-                      <span className="skill-icon">⚛️</span>
+                      <span className="skill-icon">���️</span>
                       <span className="skill-name">React</span>
                     </div>
                     <div className="skill-item">
@@ -525,6 +543,30 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
+      </div>
+
+      <div className="parallax-container">
+        <div 
+          className="parallax-element circle"
+          style={{ 
+            transform: `translate(${scrollY * 0.1}px, ${scrollY * 0.05}px)`,
+            opacity: Math.max(0.2, 1 - scrollY * 0.001)
+          }}
+        ></div>
+        <div 
+          className="parallax-element square"
+          style={{ 
+            transform: `translate(${scrollY * -0.08}px, ${scrollY * 0.1}px) rotate(${scrollY * 0.05}deg)`,
+            opacity: Math.max(0.15, 1 - scrollY * 0.001)
+          }}
+        ></div>
+        <div 
+          className="parallax-element triangle"
+          style={{ 
+            transform: `translate(${scrollY * 0.05}px, ${scrollY * -0.08}px) rotate(${scrollY * -0.03}deg)`,
+            opacity: Math.max(0.1, 1 - scrollY * 0.001)
+          }}
+        ></div>
       </div>
     </div>
   );
