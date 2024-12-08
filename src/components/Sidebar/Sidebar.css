@@ -199,3 +199,24 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
+
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 200px;
+    padding: 1rem;
+    margin: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+    margin: 0.25rem;
+  }
+}
