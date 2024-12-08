@@ -5,7 +5,7 @@ import runChat from "../config/gemini";
 export const Context = createContext();
 
 export const ContextProvider = (props) => {
-    // states
+    // All state definitions
     const [input, setInput] = useState("");
     const [recentPrompt, setRecentPrompt] = useState("");
     const [prevPrompts, setPrevPrompts] = useState([]);
@@ -14,12 +14,13 @@ export const ContextProvider = (props) => {
     const [loading, setLoading] = useState(false);
     const [resultData, setResultData] = useState("");
     const [uploadedFile, setUploadedFile] = useState(null);
-    
-    // Add new state for stop generation
     const [stopGeneration, setStopGeneration] = useState(false);
-    // states for session management
+    const [isGeneratingText, setIsGeneratingText] = useState(false);
+    const [controller, setController] = useState(null);
     const [currentSessionId, setCurrentSessionId] = useState(null);
     const [chatSessions, setChatSessions] = useState({});
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generatedText, setGeneratedText] = useState('');
 
     // Function to create a new chat session
     const createNewSession = async () => {
@@ -76,20 +77,26 @@ export const ContextProvider = (props) => {
         }
     };
 
-    const delayPara = (index, nextWord) => {
-        setTimeout(function () {
-            // Check if generation should stop
-            if (!stopGeneration) {
-                setResultData(prev => prev + nextWord);
-            }
-        }, 75 * index);
-    }
+    const delayPara = async (word) => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                if (!stopGeneration) {
+                    setResultData(prev => prev + word);
+                }
+                resolve();
+            }, 50);
+        });
+    };
 
-        // Add stop generating function
-        const stopGenerating = () => {
+    const stopGenerating = () => {
+        if (controller) {
+            controller.abort();
             setStopGeneration(true);
+            setIsGeneratingText(false);
             setLoading(false);
-        };
+            setController(null);
+        }
+    };
 
     const newChat = () => {
         createNewSession();
@@ -101,48 +108,44 @@ export const ContextProvider = (props) => {
     }
 
     const onSent = async (prompt) => {
-        // Ensure we have a current session
-        if (!currentSessionId) {
-            await createNewSession();
-        }
-
         setResultData("");
         setLoading(true);
         setShowResult(true);
-               // Reset stop generation flag
         setStopGeneration(false);
+        setIsGeneratingText(true);
 
-        let response;
+        const newController = new AbortController();
+        setController(newController);
+
         try {
-            // Existing file handling logic
+            const currentHistory = chatSessions[currentSessionId]?.messages || [];
             let fileData = null;
             if (uploadedFile) {
-                try {
-                    fileData = await readFileContent(uploadedFile);
-                } catch (fileReadError) {
-                    console.error("Error reading file:", fileReadError);
-                    setResultData("Error reading the uploaded file.");
-                    setLoading(false);
-                    return;
-                }
+                fileData = await readFileContent(uploadedFile);
             }
 
-            // Prepare prompt with file context
             let fullPrompt = prompt;
-            if (fileData) {
-                if (fileData.type === 'text') {
-                    fullPrompt += `\n\nAttached File Content:\n${fileData.content}`;
-                }
+            if (fileData?.type === 'text') {
+                fullPrompt += `\n\nAttached File Content:\n${fileData.content}`;
             }
 
-            // Send prompt to AI
-            response = await runChat(
-                fullPrompt, 
-                fileData?.type === 'image' || fileData?.type === 'pdf' ? fileData.content : null, 
-                fileData?.mimeType
+            // Get the response stream
+            const responseStream = await runChat(
+                fullPrompt,
+                fileData?.type === 'image' || fileData?.type === 'pdf' ? fileData.content : null,
+                fileData?.mimeType,
+                currentHistory.map(msg => ({
+                    role: msg.role === 'assistant' ? 'model' : msg.role,
+                    content: msg.content
+                })),
+                newController.signal
             );
-            
-            // Generate and store chat title if it's a new conversation
+
+            // Check if generation was stopped before processing
+            if (stopGeneration) {
+                throw new Error('Generation aborted');
+            }
+
             let chatTitle = "";
             if (!recentPrompt) {
                 chatTitle = await generateChatTitle(prompt);
@@ -151,52 +154,57 @@ export const ContextProvider = (props) => {
 
             setRecentPrompt(prompt);
 
-            // Existing response formatting logic
-            let responseArray = response.split("**");
-            let newResponse = "";
-            for (let i = 0; i < responseArray.length; i++) {
-                if (i === 0 || i % 2 !== 1) {
-                    newResponse += responseArray[i];
-                } else {
-                    newResponse += "<b>" + responseArray[i] + "</b>";
+            // Format and animate the response
+            let formattedResponse = responseStream
+                .split("**")
+                .map((text, i) => i % 2 === 1 ? `<b>${text}</b>` : text)
+                .join("");
+            
+            formattedResponse = formattedResponse.split("*").join("<br>");
+            const words = formattedResponse.split(" ");
+
+            // Animate word by word
+            for (const word of words) {
+                if (stopGeneration) {
+                    throw new Error('Generation aborted');
                 }
+                await delayPara(word + " ");
             }
 
-            let newResponse2 = newResponse.split("*").join("<br>");
-            let newResponseArray = newResponse2.split(" ");
-
-            setResultData("");
-           
-            for (let i = 0; i < newResponseArray.length; i++) {
-                if (stopGeneration) break; // Stop if generation is cancelled
-                const nextWord = newResponseArray[i];
-                delayPara(i, nextWord + " ");
+            // Only update chat session if generation completed
+            if (!stopGeneration) {
+                setChatSessions(prev => ({
+                    ...prev,
+                    [currentSessionId]: {
+                        ...prev[currentSessionId],
+                        messages: [
+                            ...currentHistory,
+                            { role: 'user', content: prompt },
+                            { role: 'model', content: responseStream }
+                        ],
+                        recentPrompt: prompt,
+                        resultData: formattedResponse,
+                        uploadedFile,
+                        chatTitle: chatTitle || prev[currentSessionId]?.chatTitle
+                    }
+                }));
             }
-
-            // Update current session
-            setChatSessions(prev => ({
-                ...prev,
-                [currentSessionId]: {
-                    messages: [
-                        ...(prev[currentSessionId]?.messages || []),
-                        { role: 'user', content: prompt },
-                        { role: 'assistant', content: response }
-                    ],
-                    recentPrompt: prompt,
-                    resultData: newResponse2,
-                    uploadedFile,
-                    chatTitle: chatTitle || prev[currentSessionId]?.chatTitle
-                }
-            }));
 
         } catch (error) {
-            console.error("Error getting response:", error);
-            setResultData("Sorry, there was an error getting the response.");
+            if (error.message === 'Generation aborted') {
+                console.log('Generation was stopped by user');
+                setResultData(prev => prev + "\n[Generation stopped by user]");
+            } else {
+                console.error("Error getting response:", error);
+                setResultData("Sorry, there was an error getting the response.");
+            }
         } finally {
             setLoading(false);
             setInput("");
+            setController(null);
+            setIsGeneratingText(false);
         }
-    }
+    };
 
     // Existing file handling methods remain the same
     const handleFileUpload = (event) => {
@@ -329,9 +337,11 @@ export const ContextProvider = (props) => {
         chatSessions,
         createNewSession,
         switchToSession,
-        getRecentChats
+        getRecentChats,
+        isGenerating,
+        generatedText
     }
-
+ 
     return (
         <Context.Provider value={contextValue}>
             {props.children}

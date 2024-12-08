@@ -2,9 +2,11 @@ import React, { useState, useContext } from "react";
 import "./Sidebar.css";
 import { assets } from "../../assets/assets";
 import { Context } from "../../context/Context";
+import Modal from "../Modal/Modal";
 
 const Sidebar = () => {
   const [extended, setExtended] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const {
     onSent,
     newChat,
@@ -13,61 +15,63 @@ const Sidebar = () => {
   } = useContext(Context);
 
   const loadChat = async (sessionId) => {
-    // Switch to the selected chat session
     switchToSession(sessionId);
   };
 
+  const toggleModal = () => {
+    setShowModal(!showModal);
+  };
+
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${extended ? 'extended' : ''}`}>
       <div className="top">
         <img
-          onClick={() => setExtended((prev) => !prev)}
+          onClick={() => setExtended(prev => !prev)}
           src={assets.menu_icon}
           alt="menu"
-          className="menu"
+          className={`menu ${extended ? 'rotate' : ''}`}
         />
         <div onClick={() => newChat()} className="new-chat">
           <img src={assets.plus_icon} alt="" />
-          {extended ? <p>New Chat</p> : null}
+          <p className="text">New Chat</p>
         </div>
-        {extended ? (
-          <div className="recent">
-            <p className="recent-title">Recent Chats</p>
-            {getRecentChats().length > 0 ? (
-              getRecentChats().map((chat) => (
-                <div
-                  key={chat.id}
-                  onClick={() => loadChat(chat.id)}
-                  className="recent-entry"
-                >
-                  <img src={assets.message_icon} alt="" />
-                  <p className="recent-entry-p">
-                    {chat.title.length > 18 
-                      ? chat.title.slice(0, 18) + '...' 
-                      : chat.title}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="no-recent-chats">No recent chats</p>
-            )}
-          </div>
-        ) : null}
+        <div className="recent">
+          <p className="recent-title">Recent Chats</p>
+          {getRecentChats().length > 0 ? (
+            getRecentChats().map((chat) => (
+              <div
+                key={chat.id}
+                onClick={() => loadChat(chat.id)}
+                className="recent-entry"
+              >
+                <img src={assets.message_icon} alt="" />
+                <p className="text">
+                  {chat.title.length > 18 
+                    ? chat.title.slice(0, 18) + '...' 
+                    : chat.title}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="no-recent-chats text">No recent chats</p>
+          )}
+        </div>
       </div>
       <div className="bottom">
-        <div className="bottom-item recent-entry">
+        <div className="bottom-item recent-entry" onClick={toggleModal}>
           <img src={assets.question_icon} alt="" />
-          {extended ? <p>Help</p> : null}
+          <p className="text">Help</p>
         </div>
         <div className="bottom-item recent-entry">
           <img src={assets.history_icon} alt="" />
-          {extended ? <p>Activity</p> : null}
+          <p className="text">Activity</p>
         </div>
         <div className="bottom-item recent-entry">
           <img src={assets.setting_icon} alt="" />
-          {extended ? <p>Settings</p> : null}
+          <p className="text">Settings</p>
         </div>
       </div>
+      <Modal isOpen={showModal} onClose={toggleModal} />
     </div>
   );
 };
