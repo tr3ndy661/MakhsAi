@@ -181,3 +181,21 @@
         background: rgba(255, 255, 255, 0.15);
     }
 }
+
+.home-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.home-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}

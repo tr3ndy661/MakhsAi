@@ -232,7 +232,7 @@ const Main = () => {
 
       <div className="nav">
         <img src={assets.gemini_icon} alt="" />
-        <p id="Makhs-AI">Makhs-Ai</p>
+        <p id="Makhs-AI">Makhs-A\</p>
         <img src={assets.user_icon} alt="" />
       </div>
       <div className="main-container">

@@ -1,17 +1,29 @@
-import React from 'react'
-import Sidebar from './components/Sidebar/Sidebar.jsx'
-import Main from './components/Main/Main.jsx'
-import Modal from './components/Modal/Modal.jsx'
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Sidebar from "./components/Sidebar/Sidebar";
+import Main from "./components/Main/Main";
+import LandingPage from "./components/LandingPage/LandingPage";
 
 const App = () => {
   return (
-    <>
-    {/* mounting  */}
-      <Sidebar />
-      <Main />
-      <Modal />
-    </>
-  )
-}
+    <Router>
+      <Routes>
+        {/* Landing Page Route */}
+        <Route path="/" element={<LandingPage />} />
+        
+        {/* Main App Route */}
+        <Route 
+          path="/app" 
+          element={
+            <>
+              <Sidebar />
+              <Main />
+            </>
+          } 
+        />
+      </Routes>
+    </Router>
+  );
+};
 
-export default App
+export default App;
