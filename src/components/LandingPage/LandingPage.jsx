@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScrollAnimation } from "../../hooks/useScrollAnimation";
 import CustomCursor from "../CustomCursor/CustomCursor";
@@ -13,6 +13,24 @@ const LandingPage = () => {
   const heroRef = useRef(null);
   const isScrolled = useScrollAnimation();
   const [scrollY, setScrollY] = useState(0);
+  const canvasRef = useRef(null);
+  const animationFrameRef = useRef();
+  const [particles, setParticles] = useState(
+    Array(150)
+      .fill()
+      .map(() => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        size: Math.random() * 1.5 + 0.5,
+        speedX: (Math.random() - 0.5) * 0.5,
+        speedY: (Math.random() - 0.5) * 0.5,
+        connectionRadius: Math.random() * 150 + 100,
+        pulseSpeed: Math.random() * 0.02 + 0.01,
+        phase: Math.random() * Math.PI * 2,
+      }))
+  );
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isMouseActive, setIsMouseActive] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -79,8 +97,8 @@ const LandingPage = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = ['hero', 'benefits', 'generators', 'testimonials'];
-      const currentSection = sections.find(section => {
+      const sections = ["hero", "benefits", "generators", "testimonials"];
+      const currentSection = sections.find((section) => {
         const element = document.getElementById(section);
         if (element) {
           const rect = element.getBoundingClientRect();
@@ -93,32 +111,32 @@ const LandingPage = () => {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleNavClick = (e, href) => {
     e.preventDefault();
     const section = document.querySelector(href);
     if (section) {
-      section.scrollIntoView({ behavior: 'smooth' });
+      section.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   const handleAISelection = async (e) => {
     const selected = e.target.value;
     setSelectedAI(selected);
-    
+
     try {
-      if (selected === 'chat') {
-        console.log('Before navigation');
-        await navigate('/test');
-        console.log('After navigation');
-      } else if (selected === 'image') {
-        window.location.href = 'https://labs.openai.com/';
+      if (selected === "chat") {
+        console.log("Before navigation");
+        await navigate("/test");
+        console.log("After navigation");
+      } else if (selected === "image") {
+        window.location.href = "https://labs.openai.com/";
       }
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   };
 
@@ -127,12 +145,137 @@ const LandingPage = () => {
       setScrollY(window.scrollY);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const animate = (timestamp) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Update particle positions and draw connections
+      setParticles((prevParticles) =>
+        prevParticles.map((particle) => {
+          // Update position
+          let newX = particle.x + particle.speedX;
+          let newY = particle.y + particle.speedY;
+
+          // Bounce off edges
+          if (newX < 0 || newX > window.innerWidth) particle.speedX *= -1;
+          if (newY < 0 || newY > window.innerHeight) particle.speedY *= -1;
+
+          // Mouse interaction
+          if (isMouseActive) {
+            const dx = mousePosition.x - particle.x;
+            const dy = mousePosition.y - particle.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const force = Math.min(500 / (distance * distance), 2);
+
+            if (distance < 200) {
+              newX += dx * force * 0.01;
+              newY += dy * force * 0.01;
+            }
+          }
+
+          // Update pulse phase
+          const newPhase =
+            (particle.phase + particle.pulseSpeed) % (Math.PI * 2);
+
+          return {
+            ...particle,
+            x: newX,
+            y: newY,
+            phase: newPhase,
+          };
+        })
+      );
+
+      // Draw connections
+      particles.forEach((particle, i) => {
+        particles.forEach((otherParticle, j) => {
+          if (i === j) return;
+
+          const dx = particle.x - otherParticle.x;
+          const dy = particle.y - otherParticle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < particle.connectionRadius) {
+            const opacity =
+              (1 - distance / particle.connectionRadius) *
+              Math.abs(Math.sin((particle.phase + otherParticle.phase) / 2));
+
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0, 255, 157, ${opacity * 0.15})`;
+            ctx.lineWidth = opacity * 1.5;
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(otherParticle.x, otherParticle.y);
+            ctx.stroke();
+          }
+        });
+      });
+
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelAnimationFrame(animationFrameRef.current);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [particles, mousePosition, isMouseActive]);
+
+  const handleMouseMove = useCallback((e) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleMouseEnter = () => setIsMouseActive(true);
+  const handleMouseLeave = () => setIsMouseActive(false);
+
   return (
-    <div className="landing-page">
+    <div
+      className="landing-page"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="electronic-background">
+        <canvas ref={canvasRef} className="neural-canvas"></canvas>
+        <div className="circuit-overlay"></div>
+        <div className="data-stream"></div>
+        <div className="pulse-rings"></div>
+        {particles.map((particle, index) => (
+          <div
+            key={index}
+            className="neural-node"
+            style={{
+              left: `${particle.x}px`,
+              top: `${particle.y}px`,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              transform: `translate(${
+                (mousePosition.x - particle.x) * 0.02
+              }px, ${(mousePosition.y - particle.y) * 0.02}px)`,
+              "--delay": `${index * 0.1}s`,
+              opacity: Math.abs(Math.sin(particle.phase)),
+            }}
+          />
+        ))}
+      </div>
       <CustomCursor />
       <nav className={`nav-wrapper ${isScrolled ? "scrolled" : ""}`}>
         <div className="nav-content">
@@ -145,7 +288,7 @@ const LandingPage = () => {
               className={`nav-link ${
                 activeSection === "benefits" ? "active" : ""
               }`}
-              onClick={(e) => handleNavClick(e, '#benefits')}
+              onClick={(e) => handleNavClick(e, "#benefits")}
             >
               Benefits
             </a>
@@ -154,7 +297,7 @@ const LandingPage = () => {
               className={`nav-link ${
                 activeSection === "generators" ? "active" : ""
               }`}
-              onClick={(e) => handleNavClick(e, '#generators')}
+              onClick={(e) => handleNavClick(e, "#generators")}
             >
               Generators
             </a>
@@ -163,19 +306,21 @@ const LandingPage = () => {
               className={`nav-link ${
                 activeSection === "testimonials" ? "active" : ""
               }`}
-              onClick={(e) => handleNavClick(e, '#testimonials')}
+              onClick={(e) => handleNavClick(e, "#testimonials")}
             >
               Testimonials
             </a>
             <a
               href="#creator"
-              className={`nav-link ${activeSection === 'creator' ? 'active' : ''}`}
-              onClick={(e) => handleNavClick(e, '#creator')}
+              className={`nav-link ${
+                activeSection === "creator" ? "active" : ""
+              }`}
+              onClick={(e) => handleNavClick(e, "#creator")}
             >
               Creator
             </a>
-            <button className="nav-button sign-in">Sign In</button>
-            <button className="nav-button sign-up">Sign Up</button>
+            {/* <button className="nav-button sign-in">Sign In</button>
+            <button className="nav-button sign-up">Sign Up</button> */}
           </div>
         </div>
       </nav>
@@ -185,9 +330,6 @@ const LandingPage = () => {
           <div className="hero-content">
             <h1>Artifical Intelligence Reimagined</h1>
             <p>Stop paying to use A\</p>
-            <a href="https://makhs-ai.vercel.app/" className="get-started-link">
-              Get started now completely free →
-            </a>
           </div>
           <TypeWriter />
         </section>
@@ -316,126 +458,30 @@ const LandingPage = () => {
           <div className="horizontal-line"></div>
         </div>
 
-        <section id="testimonials" className="testimonials">
-          <h2>What Users Say</h2>
-          
-          <div className="testimonials-container">
-            <div className="scroll-container">
-              <div className="scroll-content">
-                <div className="testimonial-card">
-                  <p>"This AI has completely transformed how I work. The responses are incredibly natural and helpful."</p>
-                  <span className="author">- Alex M.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"I love that it's completely free and private. No more expensive subscriptions!"</p>
-                  <span className="author">- Sarah K.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The speed and accuracy of responses are impressive. Best AI I've used so far."</p>
-                  <span className="author">- James R.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"Finally, an AI that respects privacy and doesn't require sign-ups."</p>
-                  <span className="author">- Emma L.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The customization options are fantastic. It feels like having a personal assistant."</p>
-                  <span className="author">- Michael P.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The interface is so intuitive and clean. Makes other AI platforms look outdated."</p>
-                  <span className="author">- Lisa T.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"Being able to use advanced AI features without paying is revolutionary. Thank you!"</p>
-                  <span className="author">- David H.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The response quality is consistently high. It understands context perfectly."</p>
-                  <span className="author">- Rachel M.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"Love how it remembers conversation context. Makes interactions feel more natural."</p>
-                  <span className="author">- Chris B.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"As a student, having free access to such powerful AI is incredible."</p>
-                  <span className="author">- Tom W.</span>
-                </div>
-              </div>
-              <div className="scroll-content" aria-hidden="true">
-                {/* Duplicate all cards for seamless loop */}
-                <div className="testimonial-card">
-                  <p>"This AI has completely transformed how I work. The responses are incredibly natural and helpful."</p>
-                  <span className="author">- Alex M.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"I love that it's completely free and private. No more expensive subscriptions!"</p>
-                  <span className="author">- Sarah K.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The speed and accuracy of responses are impressive. Best AI I've used so far."</p>
-                  <span className="author">- James R.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"Finally, an AI that respects privacy and doesn't require sign-ups."</p>
-                  <span className="author">- Emma L.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The customization options are fantastic. It feels like having a personal assistant."</p>
-                  <span className="author">- Michael P.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The interface is so intuitive and clean. Makes other AI platforms look outdated."</p>
-                  <span className="author">- Lisa T.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"Being able to use advanced AI features without paying is revolutionary. Thank you!"</p>
-                  <span className="author">- David H.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"The response quality is consistently high. It understands context perfectly."</p>
-                  <span className="author">- Rachel M.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"Love how it remembers conversation context. Makes interactions feel more natural."</p>
-                  <span className="author">- Chris B.</span>
-                </div>
-                <div className="testimonial-card">
-                  <p>"As a student, having free access to such powerful AI is incredible."</p>
-                  <span className="author">- Tom W.</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="line-container">
-          <div className="horizontal-line"></div>
-        </div>
-
         <section id="generators" className="generators">
           <div className="generators-content">
             <div className="title-container">
               <h2>Superior Generations</h2>
               <p>Better than the ones you pay for</p>
             </div>
-            
+
             <div className="generators-box">
               <div className="selection-area">
-                <select 
+                <select
                   className="ai-dropdown"
                   onChange={handleAISelection}
-                  value={selectedAI || ''}
+                  value={selectedAI || ""}
                 >
-                  <option value="" disabled>Select AI Type</option>
+                  <option value="" disabled>
+                    Select AI Type
+                  </option>
                   <option value="chat">Chat-AI</option>
                   <option value="image">Image Generation-AI</option>
                 </select>
 
                 {selectedAI && (
                   <div className="ai-info">
-                    {selectedAI === 'chat' ? (
+                    {selectedAI === "chat" ? (
                       <>
                         <h3>Chat-AI</h3>
                         <ul>
@@ -467,10 +513,168 @@ const LandingPage = () => {
           <div className="horizontal-line"></div>
         </div>
 
+        <section id="testimonials" className="testimonials">
+          <h2>What Users Say</h2>
+
+          <div className="testimonials-container">
+            <div className="scroll-container">
+              <div className="scroll-content">
+                <div className="testimonial-card">
+                  <p>
+                    "This AI has completely transformed how I work. The
+                    responses are incredibly natural and helpful."
+                  </p>
+                  <span className="author">- Alex M.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "I love that it's completely free and private. No more
+                    expensive subscriptions!"
+                  </p>
+                  <span className="author">- Sarah K.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The speed and accuracy of responses are impressive. Best AI
+                    I've used so far."
+                  </p>
+                  <span className="author">- James R.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "Finally, an AI that respects privacy and doesn't require
+                    sign-ups."
+                  </p>
+                  <span className="author">- Emma L.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The customization options are fantastic. It feels like
+                    having a personal assistant."
+                  </p>
+                  <span className="author">- Michael P.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The interface is so intuitive and clean. Makes other AI
+                    platforms look outdated."
+                  </p>
+                  <span className="author">- Lisa T.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "Being able to use advanced AI features without paying is
+                    revolutionary. Thank you!"
+                  </p>
+                  <span className="author">- David H.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The response quality is consistently high. It understands
+                    context perfectly."
+                  </p>
+                  <span className="author">- Rachel M.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "Love how it remembers conversation context. Makes
+                    interactions feel more natural."
+                  </p>
+                  <span className="author">- Chris B.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "As a student, having free access to such powerful AI is
+                    incredible."
+                  </p>
+                  <span className="author">- Tom W.</span>
+                </div>
+              </div>
+              <div className="scroll-content" aria-hidden="true">
+                {/* Duplicate all cards for seamless loop */}
+                <div className="testimonial-card">
+                  <p>
+                    "This AI has completely transformed how I work. The
+                    responses are incredibly natural and helpful."
+                  </p>
+                  <span className="author">- Alex M.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "I love that it's completely free and private. No more
+                    expensive subscriptions!"
+                  </p>
+                  <span className="author">- Sarah K.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The speed and accuracy of responses are impressive. Best AI
+                    I've used so far."
+                  </p>
+                  <span className="author">- James R.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "Finally, an AI that respects privacy and doesn't require
+                    sign-ups."
+                  </p>
+                  <span className="author">- Emma L.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The customization options are fantastic. It feels like
+                    having a personal assistant."
+                  </p>
+                  <span className="author">- Michael P.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The interface is so intuitive and clean. Makes other AI
+                    platforms look outdated."
+                  </p>
+                  <span className="author">- Lisa T.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "Being able to use advanced AI features without paying is
+                    revolutionary. Thank you!"
+                  </p>
+                  <span className="author">- David H.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "The response quality is consistently high. It understands
+                    context perfectly."
+                  </p>
+                  <span className="author">- Rachel M.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "Love how it remembers conversation context. Makes
+                    interactions feel more natural."
+                  </p>
+                  <span className="author">- Chris B.</span>
+                </div>
+                <div className="testimonial-card">
+                  <p>
+                    "As a student, having free access to such powerful AI is
+                    incredible."
+                  </p>
+                  <span className="author">- Tom W.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="line-container">
+          <div className="horizontal-line"></div>
+        </div>
+
         <section id="creator" className="creator">
           <div className="creator-content">
             <div className="creator-header">
-              <h2 className="glitch-text">Meet the Creator</h2>
+              <h2>Meet the Creator</h2>
             </div>
 
             <div className="creator-card">
@@ -479,24 +683,24 @@ const LandingPage = () => {
                   <span className="highlight">Abdelmoneim</span>
                   <span className="age">22 yo</span>
                 </div>
-                
+
                 <div className="title-badge">
                   Frontend Developer & Creative Explorer
                 </div>
 
                 <div className="bio">
                   <p>
-                    Hey there! I'm a passionate web developer who turns ideas into 
-                    engaging digital experiences. With a keen eye for detail and a 
-                    love for clean code, I create websites that not only look great 
-                    but also perform exceptionally well.
+                    Hey there! I'm a passionate web developer who turns ideas
+                    into engaging digital experiences. With a keen eye for
+                    detail and a love for clean code, I create websites that not
+                    only look great but also perform exceptionally well.
                   </p>
                 </div>
 
                 <div className="skills-container">
                   <div className="skills-grid">
                     <div className="skill-item">
-                      <span className="skill-icon">���️</span>
+                      <span className="skill-icon">⚛️</span>
                       <span className="skill-name">React</span>
                     </div>
                     <div className="skill-item">
@@ -524,15 +728,15 @@ const LandingPage = () => {
 
                 <div className="philosophy">
                   <p>
-                    "I believe in exploring new technologies and pushing creative boundaries 
-                    to deliver exceptional web experiences."
+                    "I believe in exploring new technologies and pushing
+                    creative boundaries to deliver exceptional web experiences."
                   </p>
                 </div>
 
                 <div className="contact-section">
                   <h3>Ready to build something amazing?</h3>
-                  <a 
-                    href="mailto:trendypotato661@gmail.com" 
+                  <a
+                    href="mailto:trendypotato661@gmail.com"
                     className="contact-button"
                   >
                     Let's Work Together
@@ -546,27 +750,35 @@ const LandingPage = () => {
       </div>
 
       <div className="parallax-container">
-        <div 
+        <div
           className="parallax-element circle"
-          style={{ 
+          style={{
             transform: `translate(${scrollY * 0.1}px, ${scrollY * 0.05}px)`,
-            opacity: Math.max(0.2, 1 - scrollY * 0.001)
+            opacity: Math.max(0.2, 1 - scrollY * 0.001),
           }}
         ></div>
-        <div 
+        <div
           className="parallax-element square"
-          style={{ 
-            transform: `translate(${scrollY * -0.08}px, ${scrollY * 0.1}px) rotate(${scrollY * 0.05}deg)`,
-            opacity: Math.max(0.15, 1 - scrollY * 0.001)
+          style={{
+            transform: `translate(${scrollY * -0.08}px, ${
+              scrollY * 0.1
+            }px) rotate(${scrollY * 0.05}deg)`,
+            opacity: Math.max(0.15, 1 - scrollY * 0.001),
           }}
         ></div>
-        <div 
+        <div
           className="parallax-element triangle"
-          style={{ 
-            transform: `translate(${scrollY * 0.05}px, ${scrollY * -0.08}px) rotate(${scrollY * -0.03}deg)`,
-            opacity: Math.max(0.1, 1 - scrollY * 0.001)
+          style={{
+            transform: `translate(${scrollY * 0.05}px, ${
+              scrollY * -0.08
+            }px) rotate(${scrollY * -0.03}deg)`,
+            opacity: Math.max(0.1, 1 - scrollY * 0.001),
           }}
         ></div>
+      </div>
+
+      <div className="disclaimer">
+        <p>* This website is currently under development. The current version does not represent the final product.</p>
       </div>
     </div>
   );
