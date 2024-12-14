@@ -1,4 +1,5 @@
 .mobile-landing-page {
+.mobile-landing-page {
   background: #000000;
   color: #ffffff;
   min-height: 100vh;
@@ -1019,4 +1020,5 @@ input[type="range"]::-webkit-slider-thumb:before {
 
 .contact-btn:hover .btn-icon {
   transform: translateX(3px);
+}
 }
