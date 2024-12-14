@@ -4,6 +4,17 @@ import "./Main.css";
 import { assets } from "../../assets/assets";
 import CustomCursor from "../CustomCursor/CustomCursor";
 
+const thinkingMessages = [
+  "AI is thinking hard...",
+  "Processing your request...",
+  "Analyzing information...",
+  "Generating response...",
+  "Contemplating the universe...",
+  "Connecting the dots...",
+  "Computing possibilities...",
+  "Gathering insights..."
+];
+
 const Main = () => {
   const {
     input,
@@ -157,17 +168,35 @@ const Main = () => {
     useEffect(() => {
       if (text) {
         if (isNewResponse) {
-          // Animate only for new AI responses
           setIsTyping(true);
           let index = 0;
           setDisplayText("");
 
           const typeNextCharacter = () => {
             if (index < text.length) {
-              setDisplayText((current) => current + text.charAt(index));
+              setDisplayText((current) => {
+                // Add character with random delay for more natural typing
+                const nextChar = text.charAt(index);
+                return current + nextChar;
+              });
               index++;
-              const randomDelay = Math.floor(Math.random() * 20) + 10;
-              setTimeout(typeNextCharacter, randomDelay);
+
+              // Variable typing speed based on punctuation and content
+              let delay = 30; // base delay
+              const currentChar = text.charAt(index);
+              
+              // Slower after punctuation
+              if (['.', '!', '?', '\n'].includes(text.charAt(index - 1))) {
+                delay = 500;
+              } 
+              // Faster for spaces and common characters
+              else if ([' ', 'e', 't', 'a', 'o', 'i'].includes(currentChar)) {
+                delay = 20;
+              }
+              // Random variation for natural feel
+              delay += Math.random() * 30;
+
+              setTimeout(typeNextCharacter, delay);
             } else {
               setIsTyping(false);
             }
@@ -175,7 +204,7 @@ const Main = () => {
 
           typeNextCharacter();
         } else {
-          // Instantly show text for recent chats
+          // Instantly show text for non-new responses
           setDisplayText(text);
           setIsTyping(false);
         }
@@ -214,6 +243,29 @@ const Main = () => {
       handleFileUpload(event); // Call the context's handleFileUpload
     }
   };
+
+  const [thinkingMessage, setThinkingMessage] = useState("");
+
+  useEffect(() => {
+    let messageInterval;
+    if (loading) {
+      // Set initial message
+      setThinkingMessage(thinkingMessages[0]);
+      
+      // Change message every 3 seconds
+      let index = 1;
+      messageInterval = setInterval(() => {
+        setThinkingMessage(thinkingMessages[index]);
+        index = (index + 1) % thinkingMessages.length;
+      }, 3000);
+    }
+
+    return () => {
+      if (messageInterval) {
+        clearInterval(messageInterval);
+      }
+    };
+  }, [loading]);
 
   return (
     <>
@@ -327,6 +379,7 @@ const Main = () => {
                       <div className="dot"></div>
                       <div className="dot"></div>
                     </div>
+                    <span className="thinking-message">{thinkingMessage}</span>
                   </div>
                 ) : (
                   <ResultContent text={resultData} isNewResponse={loading} />
@@ -396,13 +449,22 @@ const Main = () => {
                     </div>
                   )}
                 </div>
-                {input && (
-                  <img
-                    onClick={() => input.trim() && onSent(input)}
-                    src={assets.send_icon}
-                    alt="Send"
-                    style={{ cursor: "pointer" }}
-                  />
+                {loading ? (
+                  <button 
+                    className="stop-button" 
+                    onClick={stopGenerating}
+                  >
+                    Stop
+                  </button>
+                ) : (
+                  input && (
+                    <img
+                      onClick={() => input.trim() && onSent(input)}
+                      src={assets.send_icon}
+                      alt="Send"
+                      style={{ cursor: "pointer" }}
+                    />
+                  )
                 )}
               </div>
             </div>

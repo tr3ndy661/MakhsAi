@@ -476,7 +476,7 @@ const LandingPage = () => {
                     Select AI Type
                   </option>
                   <option value="chat">Chat-AI</option>
-                  <option value="image">Image Generation-AI</option>
+                  {/* <option value="image">Image Generation-AI</option> */}
                 </select>
 
                 {selectedAI && (

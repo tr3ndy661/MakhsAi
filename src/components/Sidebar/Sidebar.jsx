@@ -65,10 +65,10 @@ const Sidebar = () => {
             <img src={assets.question_icon} alt="" />
             <p className="text">Help</p>
           </div>
-          <div className="bottom-item recent-entry">
+          {/* <div className="bottom-item recent-entry">
             <img src={assets.history_icon} alt="" />
             <p className="text">Activity</p>
-          </div>
+          </div> */}
           <div className="bottom-item recent-entry">
             <img src={assets.setting_icon} alt="" />
             <p className="text">Settings</p>
