@@ -4,7 +4,7 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 
-const apiKey = "AIzaSyBD74WICdmvxs4IbzOlWMR9Mfb4Mx6F22I";
+const apiKey = "AIzaSyBtrILj1_t1PEqo9Hwo9_yFaMDw6Myatxk";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Use Gemini Pro Vision for multimodal support
